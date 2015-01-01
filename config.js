@@ -1,12 +1,11 @@
 var Config = exports;
 
-Config.TEMA_PROXY_PORT = 11005;
+Config.SCHEMA_PROXY_PORT = 11006;
 
-Config.ES_INDEX = "arxiv-demo";
-Config.ES_HOST = "jupiter.eecs.jacobs-university.de";
+Config.ES_INDEX = "tema";
+Config.ES_HOST = "localhost";
 Config.ES_PORT = 9200;
 
-Config.MWS_HOST = "jupiter.eecs.jacobs-university.de";
-Config.MWS_PORT = 10005;
+Config.SCHEMA_HOST = "localhost";
+Config.SCHEMA_PORT = 9080;
 
-Config.MAX_MWS_IDS = 1000;
