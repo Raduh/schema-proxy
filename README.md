@@ -1,14 +1,14 @@
-tema-proxy
+schema-proxy
 ==========
 
-TeMa Search Proxy Server
+Schema Search Proxy Server
 
 Requirements
 ------------
  - elasticsearch
- - tema-mws
+ - mws
 
 Dependencies
 ------------
     npm install
-    node tema-proxy.js
+    node schema-proxy.js
