@@ -1,4 +1,3 @@
-
 var ElasticSearch = exports;
 
 var config = require("./config");
@@ -37,3 +36,4 @@ ElasticSearch.query = function (query, result_callback, error_callback) {
     req.write(query);
     req.end();
 };
+
