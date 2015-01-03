@@ -161,7 +161,9 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
         return doc["math_ids"];
     });
     // flatten the array
-    math_ids = math_ids.reduce(function(a,b) { return a.concat(b); });
+    if (math_ids.length != 0) {
+        math_ids = math_ids.reduce(function(a,b) { return a.concat(b); });
+    }
 
     source_filter = [];
     math_ids.map(function(math_id) {
@@ -274,7 +276,7 @@ function(exprs, depth, limit, result_callback, error_callback) {
                 expr +
             '</mws:expr>';
     }
-    schema_query_data += '</mws:query>'
+    schema_query_data += '</mws:query>';
 
     var schema_query_options = {
         hostname: config.SCHEMA_HOST,
