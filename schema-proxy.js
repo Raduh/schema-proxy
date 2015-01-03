@@ -23,7 +23,6 @@ var config = require('./config.js');
 var es = require('./elasticsearch.js');
 
 var assert = require('assert');
-var async = require('async');
 var http = require("http");
 var url = require('url');
 var util = require('util');
@@ -62,8 +61,8 @@ http.createServer(function(request, response) {
             send_response(500, error);
         };
 
-        var schema_response_handler = function(es_response) {
-            send_response(200, es_response);
+        var schema_response_handler = function(sch_response) {
+            send_response(200, sch_response);
         }
 
         var schema_error_handler = function(error) {
