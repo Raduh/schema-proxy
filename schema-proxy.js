@@ -2,7 +2,7 @@
 
 Copyright (C) 2010-2015 KWARC Group <kwarc.info>
 
-This file is part of TeMaSearch.
+This file is part of SchemaSearch.
 
 MathWebSearch is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with TeMaSearch.  If not, see <http://www.gnu.org/licenses/>.
+along with SchemaSearch.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -51,22 +51,27 @@ http.createServer(function(request, response) {
             response.end();
         };
 
-        var es_response_handler = function(es_response) {
-            send_response(200, es_response);
-        }
+        /* Pipe elasticsearch exprs into schemad */
+        var es_response_handler = function(response) {
+            schema_query(response, qdepth, qsize,
+                    schema_response_handler, schema_error_handler);
+        };
 
         var es_error_handler = function(error) {
             error.schema_component = "elasticsearch";
             send_response(500, error);
         };
 
+        var schema_response_handler = function(es_response) {
+            send_response(200, es_response);
+        }
+
         var schema_error_handler = function(error) {
             error.tema_component = "schema";
             send_response(error.status_code, error);
         };
 
-        es_query(qtext, qdepth, qfrom, qsize,
-                es_response_handler, es_error_handler);
+        es_query(qtext, es_response_handler, es_error_handler);
     }
 
     if (request.method == "GET") {
@@ -95,7 +100,7 @@ http.createServer(function(request, response) {
  * @callback result_callback(json_data)
  */
 var es_query =
-function(query_str, schema_depth, from, size, result_callback, error_callback) {
+function(query_str, result_callback, error_callback) {
    es_get_aggregations(query_str, function(res) {
        es_get_math_elems(res, function(math_res) {
            es_get_exprs(math_res, result_callback, error_callback);
@@ -105,24 +110,24 @@ function(query_str, schema_depth, from, size, result_callback, error_callback) {
 };
 
 function es_get_math_elems(aggs, result_callback, error_callback) {
-   var top_ids = aggs['top_ids'];
-   var filters = [];
-   top_ids.map(function(id) {
-       filters.push("mws_id." + id);
-   });
-   var esquery = JSON.stringify({
-       "query" : {
-           "bool" : {
-               "must" : [{
-                   "terms" : {
-                       "mws_ids" : top_ids,
-                       "minimum_match" : 1
-                   }
-               }]
-           }
-       },
-       "_source" : filters
-   });
+    var top_ids = aggs['top_ids'];
+    var filters = [];
+    top_ids.map(function(id) {
+        filters.push("mws_id." + id);
+    });
+    var esquery = JSON.stringify({
+        "query" : {
+            "bool" : {
+                "must" : [{
+                    "terms" : {
+                        "mws_ids" : top_ids,
+        "minimum_match" : 1
+                    }
+                }]
+            }
+        },
+        "_source" : filters
+    });
 
     es.query(esquery, function(result) {
 
@@ -143,7 +148,7 @@ function es_get_math_elems(aggs, result_callback, error_callback) {
             }
             math_elems_per_doc.push({"doc_id" : hit._id, "math_ids" : math_elems});
         });
-         es_get_exprs(math_elems_per_doc);
+        result_callback(math_elems_per_doc);
     }, function(error) {
         error_callback(error);
     });
@@ -174,15 +179,19 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
     });
 
     es.query(esquery, function(result) {
-        var raw_exprs = {};
+        var exprsWithIds = {};
         result.hits.hits.map(function(hit) {
             mapping = hit._source.math;
             for (var key in mapping) {
-                raw_exprs[key] = getCMML(mapping[key]);
+                exprsWithIds[key] = getCMML(mapping[key]);
             }
 
         });
-        console.log(raw_exprs);
+        var exprsOnly = [];
+        for (var i in exprsWithIds) {
+            exprsOnly.push(exprsWithIds[i]);
+        }
+        result_callback(exprsOnly);
     }, function (error) {
         error_callback(error);
     });
