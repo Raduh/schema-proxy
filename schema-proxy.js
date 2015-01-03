@@ -120,7 +120,7 @@ function es_get_math_elems(aggs, result_callback, error_callback) {
                 "must" : [{
                     "terms" : {
                         "mws_ids" : top_ids,
-        "minimum_match" : 1
+                        "minimum_match" : 1
                     }
                 }]
             }
