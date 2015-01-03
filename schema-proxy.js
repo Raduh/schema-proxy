@@ -265,6 +265,12 @@ var simplify_mathelem = function(mws_id) {
 
 var schema_query =
 function(exprs, depth, limit, result_callback, error_callback) {
+    if (exprs.length == 0) {
+        var reply = '<mws:schemata size="0" total="0"></mws:schemata>';
+        result_callback(reply);
+        return;
+    }
+
     var schema_query_data =
         '<mws:query' +
             ' schema_depth="' + depth + '"' +
