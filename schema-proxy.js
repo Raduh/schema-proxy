@@ -33,7 +33,7 @@ http.createServer(function(request, response) {
     var process_query = function (query) {
         var qtext = query.text || "";
         var qdepth = query.depth || 3;
-        /* TODO: implement 'from' option */ 
+        /* TODO: implement pagination option */ 
         var qfrom = query.from || 0;
         var qsize = query.size || 10;
 
@@ -139,6 +139,10 @@ function es_get_math_elems(aggs, result_callback, error_callback) {
                     var mws_id_data = mws_ids[mws_id];
                     for (var math_elem in mws_id_data) {
                         var simple_mathelem = simplify_mathelem(math_elem);
+                        var xpath = mws_id_data[math_elem].xpath;
+
+                        /* Discard trivial formulae */
+                        if (xpath == "\/*[1]") continue;
                         math_elems.push(simple_mathelem);
                     }
                 }
