@@ -139,9 +139,6 @@ function es_get_math_elems(top_ids, result_callback, error_callback) {
                     for (var math_elem in mws_id_data) {
                         var simple_mathelem = simplify_mathelem(math_elem);
                         var xpath = mws_id_data[math_elem].xpath;
-
-                        /* Discard trivial formulae */
-                        if (xpath == "\/*[1]") continue;
                         math_elems.push(simple_mathelem);
                     }
                 }
@@ -157,6 +154,8 @@ function es_get_math_elems(top_ids, result_callback, error_callback) {
 }
 
 function es_get_exprs(docs_with_math, result_callback, error_callback) {
+    var MIN_MATH_LEN = 200;
+
     var doc_ids = docs_with_math.map(function(doc) {
         return doc["doc_id"];
     });
@@ -187,7 +186,11 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
         result.hits.hits.map(function(hit) {
             mapping = hit._source.math;
             for (var key in mapping) {
-                exprsWithIds[key] = getCMML(mapping[key]);
+                var cmml = getCMML(mapping[key]);
+
+                /* Discard trivial formulae */
+                if (cmml.length < MIN_MATH_LEN) continue;
+                exprsWithIds[key] = cmml;
             }
 
         });
