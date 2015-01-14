@@ -108,8 +108,7 @@ function(query_str, result_callback, error_callback) {
    
 };
 
-function es_get_math_elems(aggs, result_callback, error_callback) {
-    var top_ids = aggs['top_ids'];
+function es_get_math_elems(top_ids, result_callback, error_callback) {
     var filters = [];
     top_ids.map(function(id) {
         filters.push("mws_id." + id);
@@ -231,14 +230,6 @@ function es_get_aggregations(query_text, result_callback, error_callback) {
                 "terms" : {
                     "field" : "mws_ids",
                     "size" : MAX_RELEVANT_AGG
-                },
-                "aggs" : {
-                    "formulae_hits" : {
-                        "top_hits" : {
-                            "_source" : false,
-                            "size" : 1
-                        }
-                    }
                 }
             }
         },
@@ -248,15 +239,8 @@ function es_get_aggregations(query_text, result_callback, error_callback) {
     es.query(esquery, function(result) {
         var agg_buckets = result.aggregations.formulae.buckets;
         var top_ids = agg_buckets.map(function(bucket) { return bucket.key; });
-        var source_docs = agg_buckets.map(function(bucket) {
-            return bucket.formulae_hits.hits.hits[0]['_id'];
-        });
 
-        var json_res = {
-            'top_ids': top_ids,
-            'source_docs' : source_docs,
-        };
-        result_callback(json_res);
+        result_callback(top_ids);
     }, function(error) {
         error_callback(error);
     });
