@@ -202,7 +202,8 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
 }
 
 function getCMML(expr) {
-    var CMML_REGEX = /<annotation-xml.*Content\">(.*)<.annotation-xml>/g;
+    var CMML_REGEX =
+        /<annotation-xml[^>]*Content[^>]*>(.*?)<\/annotation-xml>/g;
     var match = CMML_REGEX.exec(expr);
     if (match == null) return "";
     else return match[1];
