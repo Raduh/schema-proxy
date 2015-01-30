@@ -266,6 +266,7 @@ function(exprs, depth, limit, result_callback, error_callback) {
 
     var schema_query_data =
         '<mws:query' +
+            ' output="json" ' + 
             ' schema_depth="' + depth + '"' +
             ' answsize="' + limit + '">';
     for (var i in exprs) {
@@ -290,13 +291,20 @@ function(exprs, depth, limit, result_callback, error_callback) {
 
     var req = http.request(schema_query_options, function(response) {
         if (response.statusCode == 200) {
-            var raw_data = '';
+            var raw_reply = '';
             response.on('data', function (chunk) {
-                raw_data += chunk;
+                raw_reply += chunk;
             });
             response.on('end', function () {
-                var json_reply = { "schemata" : raw_data }
-                result_callback(json_reply);
+                var json_reply = JSON.parse(a);
+                
+                var result = {}
+                result['total'] = json_reply['total']
+                result['schemata'] = []
+
+                get_sch_result(json_reply['schemata'], result['schemata'],
+                    exprs);
+                result_callback(result);
             });
         } else {
             var raw_data = '';
@@ -306,7 +314,7 @@ function(exprs, depth, limit, result_callback, error_callback) {
             response.on('end', function () {
                 var json_reply = {
                     status_code : response.statusCode,
-                    data : raw_data
+                    data : raw_reply
                 };
                 error_callback(json_reply);
             });
@@ -320,4 +328,29 @@ function(exprs, depth, limit, result_callback, error_callback) {
 
     req.write(schema_query_data);
     req.end();
+};
+
+var get_sch_result = function(sch_reply, sch_result, exprs) {
+    sch_reply.map(function(s) {
+        var sch_result_elem = {};
+        sch_result_elem['coverage'] = s['coverage'];
+
+        sch_result_elem['formulae'] = [];
+        s['formulae'].map(function(f_id) {
+            // should always be true
+            if (f_id < exprs.length) {
+                sch_result_elem['formulae'].push(exprs[f_id]);
+            }
+        });
+
+        sch_result_elem['subst'] = [];
+        s['subst'].map(function(subst) {
+            sch_result_elem['subst'].push(subst);
+        });
+
+        // choose first formula as representative for schematizing
+        sch_result_elem['title'] = s['formulae'][0];
+
+        sch_result.push(sch_result_elem);
+    });
 };
