@@ -296,7 +296,7 @@ function(exprs, depth, limit, result_callback, error_callback) {
                 raw_reply += chunk;
             });
             response.on('end', function () {
-                var json_reply = JSON.parse(a);
+                var json_reply = JSON.parse(raw_reply);
                 
                 var result = {}
                 result['total'] = json_reply['total']
@@ -349,7 +349,7 @@ var get_sch_result = function(sch_reply, sch_result, exprs) {
         });
 
         // choose first formula as representative for schematizing
-        sch_result_elem['title'] = s['formulae'][0];
+        sch_result_elem['title'] = sch_result_elem['formulae'][0];
 
         sch_result.push(sch_result_elem);
     });
