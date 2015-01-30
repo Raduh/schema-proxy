@@ -183,6 +183,7 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
 
     es.query(esquery, function(result) {
         var exprsWithIds = {};
+        var fullExprsWithIds = {};
         result.hits.hits.map(function(hit) {
             mapping = hit._source.math;
             for (var key in mapping) {
@@ -191,14 +192,26 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
                 /* Discard trivial formulae */
                 if (cmml.length < MIN_MATH_LEN) continue;
                 exprsWithIds[key] = cmml;
+                fullExprsWithIds[key] = mapping[key];
             }
 
         });
+
         var exprsOnly = [];
         for (var i in exprsWithIds) {
             exprsOnly.push(exprsWithIds[i]);
         }
-        result_callback(exprsOnly);
+        var fullExprs = [];
+        for (var i in fullExprsWithIds) {
+            fullExprs.push(fullExprsWithIds[i]);
+        }
+
+        var json_result = {
+            cmml_exprs : exprsOnly,
+            full_exprs : fullExprs
+        };
+
+        result_callback(json_result);
     }, function (error) {
         error_callback(error);
     });
@@ -257,7 +270,9 @@ var simplify_mathelem = function(mws_id) {
 }
 
 var schema_query =
-function(exprs, depth, limit, result_callback, error_callback) {
+function(exprs_package, depth, limit, result_callback, error_callback) {
+    var exprs = exprs_package["cmml_exprs"];
+    var fullExprs = exprs_package["full_exprs"]
     if (exprs.length == 0) {
         var reply = '<mws:schemata size="0" total="0"></mws:schemata>';
         result_callback(reply);
@@ -303,7 +318,7 @@ function(exprs, depth, limit, result_callback, error_callback) {
                 result['schemata'] = []
 
                 get_sch_result(json_reply['schemata'], result['schemata'],
-                    exprs);
+                    fullExprs);
                 result_callback(result);
             });
         } else {
@@ -330,7 +345,7 @@ function(exprs, depth, limit, result_callback, error_callback) {
     req.end();
 };
 
-var get_sch_result = function(sch_reply, sch_result, exprs) {
+var get_sch_result = function(sch_reply, sch_result, full_exprs) {
     sch_reply.map(function(s) {
         var sch_result_elem = {};
         sch_result_elem['coverage'] = s['coverage'];
@@ -338,8 +353,8 @@ var get_sch_result = function(sch_reply, sch_result, exprs) {
         sch_result_elem['formulae'] = [];
         s['formulae'].map(function(f_id) {
             // should always be true
-            if (f_id < exprs.length) {
-                sch_result_elem['formulae'].push(exprs[f_id]);
+            if (f_id < full_exprs.length) {
+                sch_result_elem['formulae'].push(full_exprs[f_id]);
             }
         });
 
