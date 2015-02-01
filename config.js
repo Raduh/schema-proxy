@@ -9,3 +9,9 @@ Config.ES_PORT = 9200;
 Config.SCHEMA_HOST = "localhost";
 Config.SCHEMA_PORT = 9080;
 
+/* Options for discarding trivial formulae */
+Config.MIN_MATH_LEN = 200;
+
+/* Number of buckets to be considered for the ES aggregation */
+Config.MAX_RELEVANT_AGG = 100;
+

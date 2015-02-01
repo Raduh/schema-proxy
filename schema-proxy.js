@@ -167,8 +167,6 @@ function es_get_math_elems(top_ids, result_callback, error_callback) {
 }
 
 function es_get_exprs(docs_with_math, result_callback, error_callback) {
-    var MIN_MATH_LEN = 1000;
-
     var doc_ids = docs_with_math.map(function(doc) {
         return doc["doc_id"];
     });
@@ -203,7 +201,7 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
                 var cmml = getCMML(mapping[key]);
 
                 /* Discard trivial formulae POST-QUERY */
-                if (cmml.length < MIN_MATH_LEN) continue;
+                if (cmml.length < Config.MIN_MATH_LEN) continue;
                 exprsWithIds[key] = cmml;
                 fullExprsWithIds[key] = mapping[key];
             }
@@ -240,8 +238,6 @@ function getCMML(expr) {
 }
 
 function es_get_aggregations(query_text, result_callback, error_callback) {
-    var MAX_RELEVANT_AGG = 100;
-
     var esquery = JSON.stringify({
         "size" : 0,
         "query" : {
@@ -261,7 +257,7 @@ function es_get_aggregations(query_text, result_callback, error_callback) {
             "formulae" : {
                 "terms" : {
                     "field" : "mws_ids",
-                    "size" : MAX_RELEVANT_AGG
+                    "size" : Config.MAX_RELEVANT_AGG
                 }
             }
         },
