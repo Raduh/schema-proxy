@@ -19,6 +19,8 @@ along with SchemaSearch.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+var DEBUG = false;
+
 var config = require('./config.js');
 var es = require('./elasticsearch.js');
 
@@ -100,11 +102,14 @@ http.createServer(function(request, response) {
  */
 var es_query =
 function(query_str, result_callback, error_callback) {
-   es_get_aggregations(query_str, function(res) {
-       es_get_math_elems(res, function(math_res) {
-           es_get_exprs(math_res, result_callback, error_callback);
-               }, error_callback);
-   }, error_callback);
+    if (DEBUG) util.log("Getting Aggregations...");
+    es_get_aggregations(query_str, function(res) {
+        if (DEBUG) util.log("Got Aggeregations. Getting Math_elems...");
+        es_get_math_elems(res, function(math_res) {
+            if (DEBUG) util.log("Got Math_elems. Getting exprs...");
+            es_get_exprs(math_res, result_callback, error_callback);
+        }, error_callback);
+    }, error_callback);
    
 };
 
@@ -128,17 +133,25 @@ function es_get_math_elems(top_ids, result_callback, error_callback) {
     });
 
     es.query(esquery, function(result) {
-
+        var solved_ids = {};
         var math_elems_per_doc = [];
         result.hits.hits.map(function(hit) {
             var math_elems = [];
             try {
                 var mws_ids = hit._source.mws_id;
                 for (var mws_id in mws_ids) {
+                    if (solved_ids[mws_id]) continue;
                     var mws_id_data = mws_ids[mws_id];
+
                     for (var math_elem in mws_id_data) {
+                        if (solved_ids[mws_id]) break;
                         var simple_mathelem = simplify_mathelem(math_elem);
                         var xpath = mws_id_data[math_elem].xpath;
+
+                        /* Discard trivial formulae PRE-QUERY */
+                        if (xpath != "/*[1]") continue;
+
+                        solved_ids[mws_id] = true;
                         math_elems.push(simple_mathelem);
                     }
                 }
@@ -154,7 +167,7 @@ function es_get_math_elems(top_ids, result_callback, error_callback) {
 }
 
 function es_get_exprs(docs_with_math, result_callback, error_callback) {
-    var MIN_MATH_LEN = 200;
+    var MIN_MATH_LEN = 1000;
 
     var doc_ids = docs_with_math.map(function(doc) {
         return doc["doc_id"];
@@ -189,7 +202,7 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
             for (var key in mapping) {
                 var cmml = getCMML(mapping[key]);
 
-                /* Discard trivial formulae */
+                /* Discard trivial formulae POST-QUERY */
                 if (cmml.length < MIN_MATH_LEN) continue;
                 exprsWithIds[key] = cmml;
                 fullExprsWithIds[key] = mapping[key];
@@ -211,6 +224,7 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
             full_exprs : fullExprs
         };
 
+        if (DEBUG) util.log("Got exprs. Sending result to schemad...");
         result_callback(json_result);
     }, function (error) {
         error_callback(error);
@@ -272,7 +286,9 @@ var simplify_mathelem = function(mws_id) {
 var schema_query =
 function(exprs_package, depth, limit, result_callback, error_callback) {
     var exprs = exprs_package["cmml_exprs"];
-    var fullExprs = exprs_package["full_exprs"]
+    var fullExprs = exprs_package["full_exprs"];
+
+    if (DEBUG) util.log("Got " + exprs.length + " exprs");
     if (exprs.length == 0) {
         var reply = '<mws:schemata size="0" total="0"></mws:schemata>';
         result_callback(reply);
@@ -313,12 +329,13 @@ function(exprs_package, depth, limit, result_callback, error_callback) {
             response.on('end', function () {
                 var json_reply = JSON.parse(raw_reply);
                 
-                var result = {}
-                result['total'] = json_reply['total']
-                result['schemata'] = []
+                var result = {};
+                result['total'] = json_reply['total'];
+                result['schemata'] = [];
 
                 get_sch_result(json_reply['schemata'], result['schemata'],
                     fullExprs);
+                if (DEBUG) util.log("Finished schematization");
                 result_callback(result);
             });
         } else {
