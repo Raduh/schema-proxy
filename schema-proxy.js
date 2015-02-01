@@ -201,7 +201,7 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
                 var cmml = getCMML(mapping[key]);
 
                 /* Discard trivial formulae POST-QUERY */
-                if (cmml.length < Config.MIN_MATH_LEN) continue;
+                if (cmml.length < config.MIN_MATH_LEN) continue;
                 exprsWithIds[key] = cmml;
                 fullExprsWithIds[key] = mapping[key];
             }
@@ -257,7 +257,7 @@ function es_get_aggregations(query_text, result_callback, error_callback) {
             "formulae" : {
                 "terms" : {
                     "field" : "mws_ids",
-                    "size" : Config.MAX_RELEVANT_AGG
+                    "size" : config.MAX_RELEVANT_AGG
                 }
             }
         },
