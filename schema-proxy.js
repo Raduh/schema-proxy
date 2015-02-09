@@ -19,7 +19,7 @@ along with SchemaSearch.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-var DEBUG = false;
+var DEBUG = true;
 
 var config = require('./config.js');
 var es = require('./elasticsearch.js');
@@ -102,96 +102,29 @@ http.createServer(function(request, response) {
  */
 var es_query =
 function(query_str, result_callback, error_callback) {
-    if (DEBUG) util.log("Getting Aggregations...");
-    es_get_aggregations(query_str, function(res) {
-        if (DEBUG) util.log("Got Aggeregations. Getting Math_elems...");
-        es_get_math_elems(res, function(math_res) {
-            if (DEBUG) util.log("Got Math_elems. Getting exprs...");
-            es_get_exprs(math_res, result_callback, error_callback);
-        }, error_callback);
-    }, error_callback);
+    es_get_math_elems(query_str, result_callback, error_callback);
    
 };
 
-function es_get_math_elems(top_ids, result_callback, error_callback) {
-    var filters = [];
-    top_ids.map(function(id) {
-        filters.push("mws_id." + id);
-    });
+function es_get_math_elems(query_text, result_callback, error_callback) {
+    if (DEBUG) util.log("Starting ES math elements retrieval");
     var esquery = JSON.stringify({
+        "size" : config.MAX_RELEVANT_FML,
         "query" : {
             "bool" : {
                 "must" : [{
-                    "terms" : {
-                        "mws_ids" : top_ids,
-                        "minimum_match" : 1
+                    "match" : {
+                        "text" : {
+                            "query" : query_text,
+                            "minimum_should_match" : "2",
+                            "operator" : "or"
+                        }
                     }
                 }]
             }
         },
-        "_source" : filters
+        "_source" : "math.*"
     });
-
-    es.query(esquery, function(result) {
-        var solved_ids = {};
-        var math_elems_per_doc = [];
-        result.hits.hits.map(function(hit) {
-            var math_elems = [];
-            try {
-                var mws_ids = hit._source.mws_id;
-                for (var mws_id in mws_ids) {
-                    if (solved_ids[mws_id]) continue;
-                    var mws_id_data = mws_ids[mws_id];
-
-                    for (var math_elem in mws_id_data) {
-                        if (solved_ids[mws_id]) break;
-                        var simple_mathelem = simplify_mathelem(math_elem);
-                        var xpath = mws_id_data[math_elem].xpath;
-
-                        /* Discard trivial formulae PRE-QUERY */
-                        if (xpath != "/*[1]") continue;
-
-                        solved_ids[mws_id] = true;
-                        math_elems.push(simple_mathelem);
-                    }
-                }
-            } catch (e) {
-                // ignore
-            }
-            math_elems_per_doc.push({"doc_id" : hit._id, "math_ids" : math_elems});
-        });
-        result_callback(math_elems_per_doc);
-    }, function(error) {
-        error_callback(error);
-    });
-}
-
-function es_get_exprs(docs_with_math, result_callback, error_callback) {
-    var doc_ids = docs_with_math.map(function(doc) {
-        return doc["doc_id"];
-    });
-    var math_ids = docs_with_math.map(function(doc) {
-        return doc["math_ids"];
-    });
-    // flatten the array
-    if (math_ids.length != 0) {
-        math_ids = math_ids.reduce(function(a,b) { return a.concat(b); });
-    }
-
-    source_filter = [];
-    math_ids.map(function(math_id) {
-        source_filter.push("math." + math_id);
-    });
-
-    var esquery = JSON.stringify({
-        "query" : {
-            "ids" : {
-                "values" : doc_ids
-            }
-        },
-        "_source" : source_filter
-    });
-
     es.query(esquery, function(result) {
         var exprsWithIds = {};
         var fullExprsWithIds = {};
@@ -222,7 +155,6 @@ function es_get_exprs(docs_with_math, result_callback, error_callback) {
             full_exprs : fullExprs
         };
 
-        if (DEBUG) util.log("Got exprs. Sending result to schemad...");
         result_callback(json_result);
     }, function (error) {
         error_callback(error);
@@ -235,48 +167,6 @@ function getCMML(expr) {
     var match = CMML_REGEX.exec(expr);
     if (match == null) return "";
     else return match[1];
-}
-
-function es_get_aggregations(query_text, result_callback, error_callback) {
-    var esquery = JSON.stringify({
-        "size" : 0,
-        "query" : {
-            "bool" : {
-                "must" : [{
-                    "match" : {
-                        "text" : {
-                            "query" : query_text,
-                            "minimum_should_match" : "2",
-                            "operator" : "or"
-                        }
-                    }
-                }]
-            }
-        },
-        "aggs" : {
-            "formulae" : {
-                "terms" : {
-                    "field" : "mws_ids",
-                    "size" : config.MAX_RELEVANT_AGG
-                }
-            }
-        },
-        "_source" : false
-    });
-
-    es.query(esquery, function(result) {
-        var agg_buckets = result.aggregations.formulae.buckets;
-        var top_ids = agg_buckets.map(function(bucket) { return bucket.key; });
-
-        result_callback(top_ids);
-    }, function(error) {
-        error_callback(error);
-    });
-}
-
-var simplify_mathelem = function(mws_id) {
-    var simplified_arr = mws_id.split("#");
-    return simplified_arr[simplified_arr.length - 1];
 }
 
 var schema_query =
@@ -382,3 +272,4 @@ var get_sch_result = function(sch_reply, sch_result, full_exprs) {
         sch_result.push(sch_result_elem);
     });
 };
+

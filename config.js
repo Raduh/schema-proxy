@@ -13,5 +13,5 @@ Config.SCHEMA_PORT = 9080;
 Config.MIN_MATH_LEN = 200;
 
 /* Number of buckets to be considered for the ES aggregation */
-Config.MAX_RELEVANT_AGG = 100;
+Config.MAX_RELEVANT_FML = 1000;
 
