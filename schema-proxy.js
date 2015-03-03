@@ -109,7 +109,8 @@ function(query_str, result_callback, error_callback) {
 function es_get_math_elems(query_text, result_callback, error_callback) {
     if (DEBUG) util.log("Starting ES math elements retrieval");
     var esquery = JSON.stringify({
-        "size" : config.MAX_RELEVANT_FML,
+        "from" : 0,
+        "size" : config.MAX_RELEVANT_DOCS,
         "query" : {
             "bool" : {
                 "must" : [{
