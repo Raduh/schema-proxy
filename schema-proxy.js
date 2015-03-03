@@ -254,7 +254,8 @@ var get_sch_result = function(sch_reply, sch_result, full_exprs) {
         sch_result_elem['coverage'] = s['coverage'];
 
         sch_result_elem['formulae'] = [];
-        s['formulae'].map(function(f_id) {
+        s['formulae'].slice(0, config.MAX_EXPR_PER_SCHEMATA)
+        .map(function(f_id) {
             // should always be true
             if (f_id < full_exprs.length) {
                 sch_result_elem['formulae'].push(full_exprs[f_id]);

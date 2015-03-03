@@ -15,3 +15,5 @@ Config.MIN_MATH_LEN = 200;
 /* Number of buckets to be considered for the ES aggregation */
 Config.MAX_RELEVANT_FML = 1000;
 
+/* Maximum number of formulae returned for each schemata */
+Config.MAX_EXPR_PER_SCHEMATA = 10;
