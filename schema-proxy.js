@@ -129,6 +129,7 @@ function es_get_math_elems(query_text, result_callback, error_callback) {
     es.query(esquery, function(result) {
         var exprsWithIds = {};
         var fullExprsWithIds = {};
+        var urlsWithIds = {};
         result.hits.hits.map(function(hit) {
             mapping = hit._source.math;
             for (var key in mapping) {
@@ -138,6 +139,7 @@ function es_get_math_elems(query_text, result_callback, error_callback) {
                 if (cmml.length < config.MIN_MATH_LEN) continue;
                 exprsWithIds[key] = cmml;
                 fullExprsWithIds[key] = mapping[key];
+                urlsWithIds[key] = hit._id;
             }
 
         });
@@ -150,10 +152,15 @@ function es_get_math_elems(query_text, result_callback, error_callback) {
         for (var i in fullExprsWithIds) {
             fullExprs.push(fullExprsWithIds[i]);
         }
+        var urlsOnly = [];
+        for (var i in urlsWithIds) {
+            urlsOnly.push(urlsWithIds[i]);
+        }
 
         var json_result = {
             cmml_exprs : exprsOnly,
-            full_exprs : fullExprs
+            full_exprs : fullExprs,
+            urls : urlsOnly
         };
 
         result_callback(json_result);
@@ -174,6 +181,7 @@ var schema_query =
 function(exprs_package, depth, limit, result_callback, error_callback) {
     var exprs = exprs_package["cmml_exprs"];
     var fullExprs = exprs_package["full_exprs"];
+    var urls = exprs_package["urls"];
 
     if (DEBUG) util.log("Got " + exprs.length + " exprs");
     if (exprs.length == 0) {
@@ -221,7 +229,7 @@ function(exprs_package, depth, limit, result_callback, error_callback) {
                 result['schemata'] = [];
 
                 get_sch_result(json_reply['schemata'], result['schemata'],
-                    fullExprs);
+                    fullExprs, urls);
                 if (DEBUG) util.log("Finished schematization");
                 result_callback(result);
             });
@@ -249,7 +257,7 @@ function(exprs_package, depth, limit, result_callback, error_callback) {
     req.end();
 };
 
-var get_sch_result = function(sch_reply, sch_result, full_exprs) {
+var get_sch_result = function(sch_reply, sch_result, full_exprs, urls) {
     sch_reply.map(function(s) {
         var sch_result_elem = {};
         sch_result_elem['coverage'] = s['coverage'];
@@ -259,7 +267,11 @@ var get_sch_result = function(sch_reply, sch_result, full_exprs) {
         .map(function(f_id) {
             // should always be true
             if (f_id < full_exprs.length) {
-                sch_result_elem['formulae'].push(full_exprs[f_id]);
+                var formulaWithUrl = {
+                    expr : full_exprs[f_id],
+                    url : urls[f_id],
+                };
+                sch_result_elem['formulae'].push(formulaWithUrl);
             }
         });
 
@@ -269,7 +281,7 @@ var get_sch_result = function(sch_reply, sch_result, full_exprs) {
         });
 
         // choose first formula as representative for schematizing
-        sch_result_elem['title'] = sch_result_elem['formulae'][0];
+        sch_result_elem['title'] = sch_result_elem['formulae'][0]['expr'];
 
         sch_result.push(sch_result_elem);
     });
