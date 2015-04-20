@@ -193,6 +193,7 @@ function(exprs_package, depth, limit, result_callback, error_callback) {
     var schema_query_data =
         '<mws:query' +
             ' output="json" ' + 
+            ' cutoff_mode="R"' + 
             ' schema_depth="' + depth + '"' +
             ' answsize="' + limit + '">';
     for (var i in exprs) {
