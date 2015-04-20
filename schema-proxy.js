@@ -35,6 +35,7 @@ http.createServer(function(request, response) {
     var process_query = function (query) {
         var qtext = query.text || "";
         var qdepth = query.depth || 3;
+        var qcutoffMode = query.cutoffMode || 'A';
         /* TODO: implement pagination option */ 
         var qfrom = query.from || 0;
         var qsize = query.size || 10;
@@ -54,7 +55,7 @@ http.createServer(function(request, response) {
 
         /* Pipe elasticsearch exprs into schemad */
         var es_response_handler = function(response) {
-            schema_query(response, qdepth, qsize,
+            schema_query(response, qdepth, qcutoffMode, qsize,
                     schema_response_handler, schema_error_handler);
         };
 
@@ -178,7 +179,8 @@ function getCMML(expr) {
 }
 
 var schema_query =
-function(exprs_package, depth, limit, result_callback, error_callback) {
+function(exprs_package, depth, cutoffMode, limit,
+        result_callback, error_callback) {
     var exprs = exprs_package["cmml_exprs"];
     var fullExprs = exprs_package["full_exprs"];
     var urls = exprs_package["urls"];
@@ -193,7 +195,7 @@ function(exprs_package, depth, limit, result_callback, error_callback) {
     var schema_query_data =
         '<mws:query' +
             ' output="json" ' + 
-            ' cutoff_mode="R"' + 
+            ' cutoff_mode="' + cutoffMode + '"' +
             ' schema_depth="' + depth + '"' +
             ' answsize="' + limit + '">';
     for (var i in exprs) {
